@@ -1,0 +1,9 @@
+nodes:
+  - "192.168.40.99"
+auth:
+  certFile: 'C:\tools\study_go\symfs\ssl\dclient.crt'
+  keyFile: 'C:\tools\study_go\symfs\ssl\dclient.key'
+  caFile: 'C:\tools\study_go\symfs\ssl\ca.crt'
+keyspace: 'tester_go'
+column: 'vids'
+ttl: 3600
