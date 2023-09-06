@@ -18,6 +18,7 @@ var Verbose, Force, Select bool
 var Conf conf.Config
 var GenerateFilename, PrefixVid, PrefixUrl, Delim string
 var GenerateCount uint32
+var BatchStringSize int
 var Logger utils.AppLogger
 
 var logMap = utils.MapLevelPrefix{

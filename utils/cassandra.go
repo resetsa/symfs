@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"resetsa/symfs/conf"
 
 	"github.com/gocql/gocql"
@@ -43,9 +42,8 @@ func ExecQuery(session *gocql.Session, queryStr string) error {
 	return session.Query(queryStr).Exec()
 }
 
-func EntryExist(session *gocql.Session, keyspace, table string, entry FsEntry) bool {
+func EntryExist(session *gocql.Session, selectQuery string, entry FsEntry) bool {
 	result := false
-	selectQuery := fmt.Sprintf(SelectVidTmpl, keyspace, table)
 	iter := session.Query(selectQuery, entry.vid).Iter()
 	for {
 		row := make(map[string]interface{})
@@ -58,7 +56,6 @@ func EntryExist(session *gocql.Session, keyspace, table string, entry FsEntry) b
 	return result
 }
 
-func UpdateEntry(session *gocql.Session, keyspace, table string, ttl int, entry FsEntry) error {
-	InsertQuery := fmt.Sprintf(InsertVidTmpl, keyspace, table, ttl)
-	return session.Query(InsertQuery, entry.vid, entry.archived, entry.deleted, entry.url).Exec()
+func UpdateEntry(session *gocql.Session, insertQuery string, entry FsEntry) error {
+	return session.Query(insertQuery, entry.vid, entry.archived, entry.deleted, entry.url).Exec()
 }

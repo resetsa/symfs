@@ -21,8 +21,6 @@ var (
 		"insert/56499193-4570-11ee-871e-0019d14ccba2,false,false,https://localhost//2023/08/28/09/58/4856499193-4570-11ee-871e-0019d14ccba2",
 		"insert/56499193-4570-11ee-871e-0019d14ccba3,false,false,https://localhost//2023/08/28/09/58/4856499193-4570-11ee-871e-0019d14ccba3",
 	}
-
-	insertDDM = "INSERT INTO %s.%s (vid, archived, deleted, url) VALUES (?,?,?,?) USING TTL 120;"
 )
 
 func TestInitSession(t *testing.T) {
@@ -72,7 +70,8 @@ func TestEntryExist(t *testing.T) {
 	createDdl := fmt.Sprintf(CreateTableTmpl, config.Keyspace, config.Column)
 	dropDdl := fmt.Sprintf(DropTableTmpl, config.Keyspace, config.Column)
 	ExecQuery(sess, createDdl)
-	insert := fmt.Sprintf(insertDDM, config.Keyspace, config.Column)
+	insertQuery := fmt.Sprintf(InsertVidTmpl, config.Keyspace, config.Column)
+	selectQuery := fmt.Sprintf(SelectVidTmpl, config.Keyspace, config.Column)
 	// insert records
 	for _, entryString := range checkExistEntrys {
 		vid, archived, deleted, url := func(s string, del string) (v string, a bool, d bool, u string) {
@@ -83,7 +82,7 @@ func TestEntryExist(t *testing.T) {
 			u = result[3]
 			return
 		}(entryString, ",")
-		if err := sess.Query(insert, vid, archived, deleted, url).Exec(); err != nil {
+		if err := sess.Query(insertQuery, vid, archived, deleted, url).Exec(); err != nil {
 			t.Error(err)
 		}
 	}
@@ -93,7 +92,7 @@ func TestEntryExist(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if !EntryExist(sess, config.Keyspace, config.Column, fsEntry) {
+		if !EntryExist(sess, selectQuery, fsEntry) {
 			t.Error("Entry exist, but not detected")
 		}
 	}
@@ -103,7 +102,7 @@ func TestEntryExist(t *testing.T) {
 		deleted:  false,
 		url:      "wrong-url",
 	}
-	if EntryExist(sess, config.Keyspace, config.Column, fakeFsEntry) {
+	if EntryExist(sess, selectQuery, fakeFsEntry) {
 		t.Error("Entry not exist, but not detected")
 	}
 	ExecQuery(sess, dropDdl)
@@ -118,12 +117,13 @@ func TestUpdateEntry(t *testing.T) {
 	dropDdl := fmt.Sprintf(DropTableTmpl, config.Keyspace, config.Column)
 	ExecQuery(sess, createDdl)
 	// check func
+	insertQuery := fmt.Sprintf(InsertVidTmpl, config.Keyspace, config.Column)
 	for _, entryString := range checkInsert {
 		fsEntry, err := NewFsEntryFromString(entryString, ",")
 		if err != nil {
 			t.Error(err)
 		}
-		if err := UpdateEntry(sess, config.Keyspace, config.Column, config.TTL, fsEntry); err != nil {
+		if err := UpdateEntry(sess, insertQuery, fsEntry); err != nil {
 			t.Error("Entry does not create by update")
 		}
 	}

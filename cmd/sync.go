@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"resetsa/symfs/conf"
 	"resetsa/symfs/utils"
 
 	"github.com/gocql/gocql"
@@ -25,26 +24,19 @@ func init() {
 	syncCmd.Flags().StringVar(&InFile, "filepath", "./generated.csv", "input file with vids")
 	syncCmd.Flags().BoolVar(&Select, "select", false, "run select first")
 	syncCmd.Flags().StringVar(&Delim, "delim", ",", "set delimeters symbol")
+	syncCmd.Flags().IntVar(&BatchStringSize, "bsize", 100000, "set delimeters symbol")
 }
 
 func runnerSync(cmd *cobra.Command, args []string) error {
-	var fsEntryS []utils.FsEntry
-	var checked, updated int64
+	var exist, updated int64
 	// disable help and errors output
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
-	Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start sync phase")
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "filename - %s", InFile)
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "select - %t", Select)
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "delim - \"%s\"", Delim)
-	fileExist, err := utils.PathExists(InFile)
-	if !fileExist || err != nil {
+	printArgs()
+	// check file exist and accessed
+	if fileExist, err := utils.PathExists(InFile); !fileExist || err != nil {
 		return err
 	}
-	if fsEntryS, err = utils.ReadFromFile(InFile, Delim); err != nil {
-		return err
-	}
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "read from file %d records", len(fsEntryS))
 	Logger.LeveledFunc(utils.LogVerbose, Logger.Print, "init session to Cassandra")
 	sess, err := utils.InitSession(&Conf)
 	if err != nil {
@@ -62,35 +54,76 @@ func runnerSync(cmd *cobra.Command, args []string) error {
 	if err := utils.ExecQuery(sess, createTable); err != nil {
 		return err
 	}
-	for _, entry := range fsEntryS {
-		switch Select {
-		case true:
-			checked += 1
-			isUpdated, err := updateWithSelect(sess, Conf, entry)
+	scanner, err := utils.NewStringReader(InFile, BatchStringSize)
+	if err != nil {
+		return err
+	}
+	// for gc run
+	defer func() {
+		scanner = nil
+	}()
+	insertQuery := fmt.Sprintf(utils.InsertVidTmpl, Conf.Keyspace, Conf.Column, Conf.TTL)
+	selectQuery := fmt.Sprintf(utils.SelectVidTmpl, Conf.Keyspace, Conf.Column)
+	for {
+		lines := scanner.ReadBatch()
+		Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "read %v records from file", len(lines))
+		if len(lines) == 0 {
+			break
+		}
+		for _, line := range lines {
+			isExisted, IsUpdated, err := syncEntry(sess, insertQuery, selectQuery, line)
 			if err != nil {
 				return err
 			}
-			if isUpdated {
-				updated += 1
+			if isExisted {
+				exist++
 			}
-		case false:
-			if err = utils.UpdateEntry(sess, Conf.Keyspace, Conf.Column, Conf.TTL, entry); err != nil {
-				return err
+			if IsUpdated {
+				updated++
 			}
-			updated += 1
 		}
 	}
-	Logger.LeveledFuncF(utils.LogInfo, Logger.Printf, "entry check/updated: %d/%d", checked, updated)
+
+	Logger.LeveledFuncF(utils.LogInfo, Logger.Printf, "entry exist/updated: %v/%v", exist, updated)
 	return nil
 }
 
-func updateWithSelect(sess *gocql.Session, conf conf.Config, entry utils.FsEntry) (isUpdated bool, err error) {
-	if !utils.EntryExist(sess, conf.Keyspace, conf.Column, entry) {
-		err := utils.UpdateEntry(sess, conf.Keyspace, conf.Column, conf.TTL, entry)
+func syncEntry(sess *gocql.Session, insertQuery, selectQuery string, entryString string) (isExisted, isUpdated bool, err error) {
+	entry, err := utils.NewFsEntryFromString(entryString, Delim)
+	if err != nil {
+		return isExisted, isUpdated, err
+	}
+	if Select {
+		return updateWithSelect(sess, insertQuery, selectQuery, entry)
+	}
+	return updateWithoutSelect(sess, insertQuery, entry)
+}
+
+func updateWithSelect(sess *gocql.Session, insertQuery, selectQuery string, entry utils.FsEntry) (isExisted, isUpdated bool, err error) {
+	if !utils.EntryExist(sess, selectQuery, entry) {
+		err := utils.UpdateEntry(sess, insertQuery, entry)
 		if err != nil {
-			return false, err
+			return isExisted, isUpdated, err
 		}
 		isUpdated = true
+		return isExisted, isUpdated, nil
 	}
-	return isUpdated, nil
+	isExisted = true
+	return isExisted, isUpdated, nil
+}
+
+func updateWithoutSelect(sess *gocql.Session, insertQuery string, entry utils.FsEntry) (isExisted, isUpdated bool, err error) {
+	if err = utils.UpdateEntry(sess, insertQuery, entry); err != nil {
+		return isExisted, isUpdated, err
+	}
+	isUpdated = true
+	return isExisted, isUpdated, err
+}
+
+func printArgs() {
+	Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start sync phase")
+	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "filename - %s", InFile)
+	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "select - %t", Select)
+	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "delim - \"%s\"", Delim)
+	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "batch size - %v", BatchStringSize)
 }
