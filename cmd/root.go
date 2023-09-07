@@ -5,6 +5,8 @@ package cmd
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 
 	"resetsa/symfs/conf"
 	"resetsa/symfs/utils"
@@ -36,6 +38,13 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		Logger.PrintError("Interrupt from Control-C")
+		os.Exit(1)
+	}()
 	err := rootCmd.Execute()
 	if err != nil {
 		// output error

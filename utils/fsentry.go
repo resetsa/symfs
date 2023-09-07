@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -98,9 +97,4 @@ func NewFsEntryFromString(strVal string, delim string) (FsEntry, error) {
 			deleted:  deleted,
 			url:      url},
 		nil
-}
-
-func GetAttrNumber(i any) int {
-	e := reflect.ValueOf(i)
-	return e.NumField()
 }
