@@ -4,7 +4,6 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"resetsa/symfs/utils"
 
 	"github.com/gocql/gocql"
@@ -49,9 +48,10 @@ func runnerSync(cmd *cobra.Command, args []string) error {
 		}
 		Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "stop sync phase")
 	}()
+	querys := utils.QueryHolder{}
+	querys.RenderSql(Conf.Keyspace, Conf.Column, 60, Conf.TTL)
 	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "create columns %s.%s if not exist", Conf.Keyspace, Conf.Column)
-	createTable := fmt.Sprintf(utils.CreateTableTmpl, Conf.Keyspace, Conf.Column)
-	if err := utils.ExecQuery(sess, createTable); err != nil {
+	if err := utils.ExecQuery(sess, querys.CreateSql); err != nil {
 		return err
 	}
 	scanner, err := utils.NewStringReader(InFile, BatchStringSize)
@@ -62,8 +62,6 @@ func runnerSync(cmd *cobra.Command, args []string) error {
 	defer func() {
 		scanner = nil
 	}()
-	insertQuery := fmt.Sprintf(utils.InsertVidTmpl, Conf.Keyspace, Conf.Column, Conf.TTL)
-	selectQuery := fmt.Sprintf(utils.SelectVidTmpl, Conf.Keyspace, Conf.Column)
 	for {
 		lines := scanner.ReadBatch()
 		Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "read %v records from file", len(lines))
@@ -71,7 +69,7 @@ func runnerSync(cmd *cobra.Command, args []string) error {
 			break
 		}
 		for _, line := range lines {
-			isExisted, IsUpdated, err := syncEntry(sess, insertQuery, selectQuery, line)
+			isExisted, IsUpdated, err := syncEntry(sess, querys.InsertSql, querys.SelectSql, line)
 			if err != nil {
 				return err
 			}
@@ -82,9 +80,10 @@ func runnerSync(cmd *cobra.Command, args []string) error {
 				updated++
 			}
 		}
+		Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "entry exist/updated: %v/%v", exist, updated)
 	}
 
-	Logger.LeveledFuncF(utils.LogInfo, Logger.Printf, "entry exist/updated: %v/%v", exist, updated)
+	Logger.LeveledFuncF(utils.LogInfo, Logger.Printf, "total entry exist/updated: %v/%v", exist, updated)
 	return nil
 }
 

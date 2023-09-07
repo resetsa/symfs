@@ -43,7 +43,7 @@ func Execute() {
 	go func() {
 		<-c
 		Logger.PrintError("Interrupt from Control-C")
-		os.Exit(1)
+		os.Exit(255)
 	}()
 	err := rootCmd.Execute()
 	if err != nil {

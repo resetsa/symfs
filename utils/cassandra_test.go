@@ -46,17 +46,17 @@ func TestCreateTable(t *testing.T) {
 	config := ReadConfig()
 	sess, _ := InitSession(&config)
 	defer sess.Close()
-	createDdl := fmt.Sprintf(CreateTableTmpl, config.Keyspace, config.Column)
-	dropDdl := fmt.Sprintf(DropTableTmpl, config.Keyspace, config.Column)
-	if err := ExecQuery(sess, createDdl); err != nil {
+	querys := QueryHolder{}
+	querys.RenderSql(config.Keyspace, config.Column, 60, config.TTL)
+	if err := ExecQuery(sess, querys.CreateSql); err != nil {
 		t.Errorf("Cannot create table %s", config.Column)
 		t.Error(err)
 	}
-	if err := ExecQuery(sess, createDdl); err != nil {
+	if err := ExecQuery(sess, querys.CreateSql); err != nil {
 		t.Errorf("Cannot recreate table %s", config.Column)
 		t.Error(err)
 	}
-	if err := ExecQuery(sess, dropDdl); err != nil {
+	if err := ExecQuery(sess, querys.DropSql); err != nil {
 		t.Errorf("Cannot drop table %s", config.Column)
 		t.Error(err)
 	}
@@ -67,11 +67,9 @@ func TestEntryExist(t *testing.T) {
 	sess, _ := InitSession(&config)
 	defer sess.Close()
 	// prepare for check
-	createDdl := fmt.Sprintf(CreateTableTmpl, config.Keyspace, config.Column)
-	dropDdl := fmt.Sprintf(DropTableTmpl, config.Keyspace, config.Column)
-	ExecQuery(sess, createDdl)
-	insertQuery := fmt.Sprintf(InsertVidTmpl, config.Keyspace, config.Column)
-	selectQuery := fmt.Sprintf(SelectVidTmpl, config.Keyspace, config.Column)
+	querys := QueryHolder{}
+	querys.RenderSql(config.Keyspace, config.Column, 60, config.TTL)
+	ExecQuery(sess, querys.CreateSql)
 	// insert records
 	for _, entryString := range checkExistEntrys {
 		vid, archived, deleted, url := func(s string, del string) (v string, a bool, d bool, u string) {
@@ -82,7 +80,7 @@ func TestEntryExist(t *testing.T) {
 			u = result[3]
 			return
 		}(entryString, ",")
-		if err := sess.Query(insertQuery, vid, archived, deleted, url).Exec(); err != nil {
+		if err := sess.Query(querys.InsertSql, vid, archived, deleted, url).Exec(); err != nil {
 			t.Error(err)
 		}
 	}
@@ -92,7 +90,7 @@ func TestEntryExist(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if !EntryExist(sess, selectQuery, fsEntry) {
+		if !EntryExist(sess, querys.SelectSql, fsEntry) {
 			t.Error("Entry exist, but not detected")
 		}
 	}
@@ -102,10 +100,10 @@ func TestEntryExist(t *testing.T) {
 		deleted:  false,
 		url:      "wrong-url",
 	}
-	if EntryExist(sess, selectQuery, fakeFsEntry) {
+	if EntryExist(sess, querys.SelectSql, fakeFsEntry) {
 		t.Error("Entry not exist, but not detected")
 	}
-	ExecQuery(sess, dropDdl)
+	ExecQuery(sess, querys.DropSql)
 }
 
 func TestUpdateEntry(t *testing.T) {
@@ -113,21 +111,20 @@ func TestUpdateEntry(t *testing.T) {
 	sess, _ := InitSession(&config)
 	defer sess.Close()
 	// prepare for check
-	createDdl := fmt.Sprintf(CreateTableTmpl, config.Keyspace, config.Column)
-	dropDdl := fmt.Sprintf(DropTableTmpl, config.Keyspace, config.Column)
-	ExecQuery(sess, createDdl)
+	querys := QueryHolder{}
+	querys.RenderSql(config.Keyspace, config.Column, 60, config.TTL)
+	ExecQuery(sess, querys.CreateSql)
 	// check func
-	insertQuery := fmt.Sprintf(InsertVidTmpl, config.Keyspace, config.Column)
 	for _, entryString := range checkInsert {
 		fsEntry, err := NewFsEntryFromString(entryString, ",")
 		if err != nil {
 			t.Error(err)
 		}
-		if err := UpdateEntry(sess, insertQuery, fsEntry); err != nil {
+		if err := UpdateEntry(sess, querys.InsertSql, fsEntry); err != nil {
 			t.Error("Entry does not create by update")
 		}
 	}
-	ExecQuery(sess, dropDdl)
+	ExecQuery(sess, querys.DropSql)
 }
 
 func ReadConfig() conf.Config {

@@ -85,13 +85,13 @@ func TestGenerateData(t *testing.T) {
 	}
 }
 
-func TestReadFromFile(t *testing.T) {
-	filepath := "../generated.csv"
-	delim := ","
-	if _, err := ReadFromFile(filepath, delim); err != nil {
-		t.Error(err)
-	}
-}
+// func TestReadFromFile(t *testing.T) {
+// 	filepath := "../generated.csv"
+// 	delim := ","
+// 	if _, err := ReadFromFile(filepath, delim); err != nil {
+// 		t.Error(err)
+// 	}
+// }
 
 func TestNewFsEntryFromString(t *testing.T) {
 	strValue := "vg-000001/56499193-4570-11ee-871e-0019d14ccba6,false,false,https://localhost//2023/08/28/09/58/4856499193-4570-11ee-871e-0019d14ccba6"

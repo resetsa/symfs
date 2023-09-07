@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -51,32 +50,27 @@ func GenerateData(filename string, count uint32, prefixVid, prefixUrl string) er
 	return nil
 }
 
-func ReadFromFile(filename string, delim string) ([]FsEntry, error) {
-	var result []FsEntry
-	file, err := os.Open(filename)
-	if err != nil {
-		return result, err
-	}
-	defer file.Close()
-	fileScanner := bufio.NewScanner(file)
-	fileScanner.Split(bufio.ScanLines)
-	for fileScanner.Scan() {
-		if entry, err := NewFsEntryFromString(fileScanner.Text(), delim); err != nil {
-			return result, err
-		} else {
-			result = append(result, entry)
-		}
-	}
-	return result, nil
-}
+// func ReadFromFile(filename string, delim string) ([]FsEntry, error) {
+// 	var result []FsEntry
+// 	file, err := os.Open(filename)
+// 	if err != nil {
+// 		return result, err
+// 	}
+// 	defer file.Close()
+// 	fileScanner := bufio.NewScanner(file)
+// 	fileScanner.Split(bufio.ScanLines)
+// 	for fileScanner.Scan() {
+// 		if entry, err := NewFsEntryFromString(fileScanner.Text(), delim); err != nil {
+// 			return result, err
+// 		} else {
+// 			result = append(result, entry)
+// 		}
+// 	}
+// 	return result, nil
+// }
 
 func NewFsEntryFromString(strVal string, delim string) (FsEntry, error) {
-	nullFsEntry := FsEntry{
-		vid:      "",
-		url:      "",
-		archived: false,
-		deleted:  false,
-	}
+	nullFsEntry := FsEntry{}
 	entryCsv := strings.Split(strVal, delim)
 	if len(entryCsv) != GetAttrNumber(nullFsEntry) {
 		return nullFsEntry, fmt.Errorf("split string not contains %d part", GetAttrNumber(nullFsEntry))

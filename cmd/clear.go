@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"resetsa/symfs/utils"
 
 	"github.com/spf13/cobra"
@@ -42,12 +41,12 @@ func runCleaner(cmd *cobra.Command, args []string) error {
 		}
 		Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "stop clean phase")
 	}()
-	truncateTable := fmt.Sprintf(utils.TruncateTableTmpl, Conf.Keyspace, Conf.Column)
-	dropTable := fmt.Sprintf(utils.DropTableTmpl, Conf.Keyspace, Conf.Column)
+	querys := utils.QueryHolder{}
+	querys.RenderSql(Conf.Keyspace, Conf.Column, 60, Conf.TTL)
 	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "truncate table %s.%s", Conf.Keyspace, Conf.Column)
-	err_t := utils.ExecQuery(sess, truncateTable)
+	err_t := utils.ExecQuery(sess, querys.TruncateSql)
 	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "drop table %s.%s", Conf.Keyspace, Conf.Column)
-	err_d := utils.ExecQuery(sess, dropTable)
+	err_d := utils.ExecQuery(sess, querys.DropSql)
 	switch {
 	case err_t != nil:
 		return err_t
