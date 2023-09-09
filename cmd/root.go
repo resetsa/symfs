@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"resetsa/symfs/conf"
 	"resetsa/symfs/utils"
@@ -20,9 +21,9 @@ var Verbose, Force, Select bool
 var Conf conf.Config
 var GenerateFilename, PrefixVid, PrefixUrl, Delim string
 var GenerateCount uint32
-var BatchStringSize int
+var BatchStringSize, Parallel int
 var Logger utils.AppLogger
-
+var timeStart, timeEnd time.Time
 var logMap = utils.MapLevelPrefix{
 	utils.LogError:   "ERROR: ",
 	utils.LogInfo:    "INFO: ",
@@ -38,6 +39,7 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	timeStart = time.Now()
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -51,6 +53,8 @@ func Execute() {
 		Logger.PrintError(err)
 		os.Exit(1)
 	}
+	timeEnd = time.Now()
+	Logger.LeveledFuncF(utils.LogInfo, Logger.Printf, "running time %v\n", timeEnd.Sub(timeStart))
 }
 
 func init() {

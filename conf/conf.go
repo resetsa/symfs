@@ -10,6 +10,7 @@ type Config struct {
 	Keyspace string
 	Column   string
 	TTL      int
+	Timeout  int
 }
 
 type Auth struct {

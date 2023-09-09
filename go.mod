@@ -7,6 +7,7 @@ require (
 	github.com/onokonem/sillyQueueServer v0.0.0-20170829113733-84501ce98da1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
+	golang.org/x/sync v0.1.0
 )
 
 require (

@@ -7,3 +7,4 @@ auth:
 keyspace: 'tester_go'
 column: 'vids'
 ttl: 3600
+timeout: 20

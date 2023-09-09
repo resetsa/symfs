@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"resetsa/symfs/conf"
+	"time"
 
 	"github.com/gocql/gocql"
 )
@@ -16,7 +17,7 @@ const (
 	) with gc_grace_seconds = %d;`
 	DropTableTmpl     string = "DROP TABLE IF EXISTS %s.%s;"
 	TruncateTableTmpl string = "TRUNCATE TABLE %s.%s;"
-	SelectVidTmpl     string = "SELECT vid, url from %s.%s WHERE vid = ?;"
+	SelectVidTmpl     string = "SELECT vid from %s.%s WHERE vid = ?;"
 	InsertVidTmpl     string = "INSERT INTO %s.%s (vid, archived, deleted, url) VALUES (?,?,?,?) USING TTL %d;"
 )
 
@@ -55,6 +56,7 @@ func InitSession(config *conf.Config) (*gocql.Session, error) {
 		EnableHostVerification: false,
 	}
 	cluster.Logger = nopLogger{}
+	cluster.Timeout = time.Duration(config.Timeout) * time.Second
 	return cluster.CreateSession()
 }
 
