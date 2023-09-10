@@ -46,12 +46,6 @@ func runnerSync(cmd *cobra.Command, args []string) error {
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
 	Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start sync phase")
-	// Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start sync phase")
-	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "filename - %s", InFile)
-	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "select - %t", Select)
-	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "delim - \"%s\"", Delim)
-	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "batch size - %v", BatchStringSize)
-	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "parallel threads - %v", Parallel)
 	kvArgs := map[string]any{
 		"filename":         InFile,
 		"select":           Select,

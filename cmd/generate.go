@@ -22,8 +22,9 @@ var generateCmd = &cobra.Command{
 		cmd.SilenceErrors = true
 		cmd.SilenceUsage = true
 		Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start generate phase")
-		Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "filename - %s", GenerateFilename)
-		Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "counter - %d", GenerateCount)
+		// print args
+		kvArgs := map[string]any{"filename": GenerateFilename, "counnter": GenerateCount}
+		printArgs(&Logger, kvArgs)
 		defer Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "stop generate phase")
 		// checks args
 		Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "check file exist %v", GenerateFilename)
