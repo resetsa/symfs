@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// struct for describe config
 type Config struct {
 	Nodes    []string
 	Auth     Auth

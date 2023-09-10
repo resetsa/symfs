@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/onokonem/sillyQueueServer/timeuuid"
+	"github.com/gocql/gocql"
 )
 
 var (
@@ -59,7 +59,7 @@ func CheckNewFsEntry(t *testing.T, prefixVid string, prefixUrl string) {
 	if !strings.Contains(fsEntry.url, prefixUrl) {
 		t.Errorf("Value got %q not contains %q", fsEntry.url, prefixUrl)
 	}
-	if _, err := timeuuid.ParseUUID(strings.Split(fsEntry.vid, "/")[1]); err != nil {
+	if _, err := gocql.ParseUUID(strings.Split(fsEntry.vid, "/")[1]); err != nil {
 		t.Errorf("Value got %q not UUID", fsEntry.vid)
 	}
 }
@@ -69,7 +69,6 @@ func TestNewFsEntry(t *testing.T) {
 		pUrl := prefixUrls[count]
 		CheckNewFsEntry(t, pVid, pUrl)
 	}
-
 }
 
 func TestGenerateData(t *testing.T) {

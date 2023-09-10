@@ -24,17 +24,20 @@ var (
 )
 
 func TestInitSession(t *testing.T) {
-	config := ReadConfig()
+	// setup
+	config := ReadTestConfig()
 	sess, err := InitSession(&config)
+	// test
 	if err != nil {
 		t.Errorf("Session not init to work instance on %s", config.Nodes)
 		t.Error(err)
 	}
+	// clean
 	if !sess.Closed() {
 		t.Logf("Close work session to %s", config.Nodes)
 		sess.Close()
 	}
-
+	// negative test
 	config.Nodes[0] = "127.0.0.1"
 	if _, err := InitSession(&config); err == nil {
 		t.Errorf("Session init to unwork instance on %s", config.Nodes)
@@ -43,11 +46,13 @@ func TestInitSession(t *testing.T) {
 }
 
 func TestCreateTable(t *testing.T) {
-	config := ReadConfig()
+	// setup
+	config := ReadTestConfig()
 	sess, _ := InitSession(&config)
 	defer sess.Close()
 	querys := QueryHolder{}
 	querys.RenderSql(config.Keyspace, config.Column, 60, config.TTL)
+	// tests
 	if err := ExecQuery(sess, querys.CreateSql); err != nil {
 		t.Errorf("Cannot create table %s", config.Column)
 		t.Error(err)
@@ -56,6 +61,7 @@ func TestCreateTable(t *testing.T) {
 		t.Errorf("Cannot recreate table %s", config.Column)
 		t.Error(err)
 	}
+	// clear
 	if err := ExecQuery(sess, querys.DropSql); err != nil {
 		t.Errorf("Cannot drop table %s", config.Column)
 		t.Error(err)
@@ -63,13 +69,19 @@ func TestCreateTable(t *testing.T) {
 }
 
 func TestEntryExist(t *testing.T) {
-	config := ReadConfig()
+	config := ReadTestConfig()
 	sess, _ := InitSession(&config)
 	defer sess.Close()
 	// prepare for check
 	querys := QueryHolder{}
 	querys.RenderSql(config.Keyspace, config.Column, 60, config.TTL)
 	ExecQuery(sess, querys.CreateSql)
+	fakeFsEntry := FsEntry{
+		vid:      "vid-not-exist",
+		archived: false,
+		deleted:  false,
+		url:      "wrong-url",
+	}
 	// insert records
 	for _, entryString := range checkExistEntrys {
 		vid, archived, deleted, url := func(s string, del string) (v string, a bool, d bool, u string) {
@@ -94,12 +106,6 @@ func TestEntryExist(t *testing.T) {
 			t.Error("Entry exist, but not detected")
 		}
 	}
-	fakeFsEntry := FsEntry{
-		vid:      "vid-not-exist",
-		archived: false,
-		deleted:  false,
-		url:      "wrong-url",
-	}
 	if EntryExist(sess, querys.SelectSql, fakeFsEntry) {
 		t.Error("Entry not exist, but not detected")
 	}
@@ -107,7 +113,7 @@ func TestEntryExist(t *testing.T) {
 }
 
 func TestUpdateEntry(t *testing.T) {
-	config := ReadConfig()
+	config := ReadTestConfig()
 	sess, _ := InitSession(&config)
 	defer sess.Close()
 	// prepare for check
@@ -127,7 +133,7 @@ func TestUpdateEntry(t *testing.T) {
 	ExecQuery(sess, querys.DropSql)
 }
 
-func ReadConfig() conf.Config {
+func ReadTestConfig() conf.Config {
 	var c conf.Config
 	viper.SetConfigName("symfs.yaml")
 	viper.SetConfigType("yaml")

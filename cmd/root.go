@@ -13,7 +13,6 @@ import (
 	"resetsa/symfs/utils"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var cfgFile, InFile string
@@ -67,47 +66,4 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&Verbose, "verbose", false, "verbose logging")
 	rootCmd.PersistentFlags().BoolVar(&Force, "force", false, "force run")
 	cobra.OnInitialize(initLogger, initConfig)
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".symfs" (without extension).
-		viper.AddConfigPath(home)
-		viper.AddConfigPath(".")
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("symfs.yaml")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-	if err := ParseConfig(&Conf); err != nil {
-		rootCmd.SilenceErrors = true
-		rootCmd.SilenceUsage = true
-		Logger.LeveledFuncF(utils.LogError, Logger.Printf, "fail on parse config %s", viper.ConfigFileUsed())
-		Logger.LeveledFunc(utils.LogError, Logger.Fatal, err)
-	}
-}
-
-func initLogger() {
-	if Verbose {
-		logMap[utils.LogVerbose] = "VERBOSE: "
-	}
-	Logger = utils.NewAppLogger(logMap)
-}
-
-func ParseConfig(c *conf.Config) error {
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-	if err := viper.Unmarshal(&c); err != nil {
-		return err
-	}
-	return nil
 }

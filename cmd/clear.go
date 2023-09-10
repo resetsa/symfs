@@ -24,16 +24,20 @@ func runCleaner(cmd *cobra.Command, args []string) error {
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
 	Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start clean phase")
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "force - %t", Force)
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "hosts - %v", Conf.Nodes)
+	// print args
+	kvArgs := map[string]any{"force": Force, "hosts": Conf.Nodes}
+	printArgs(&Logger, kvArgs)
+	// validation args
 	if !Force {
 		return errors.New("use force flag for action")
 	}
-	sess, err := utils.InitSession(&Conf)
+	// init session
 	Logger.LeveledFunc(utils.LogVerbose, Logger.Print, "init session to Cassandra")
+	sess, err := utils.InitSession(&Conf)
 	if err != nil {
 		return err
 	}
+	// clean session on exit
 	defer func() {
 		Logger.LeveledFunc(utils.LogVerbose, Logger.Print, "close session to Cassandra")
 		if !sess.Closed() {
@@ -41,12 +45,16 @@ func runCleaner(cmd *cobra.Command, args []string) error {
 		}
 		Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "stop clean phase")
 	}()
+	// render sql query
 	querys := utils.QueryHolder{}
 	querys.RenderSql(Conf.Keyspace, Conf.Column, 60, Conf.TTL)
+	// truncate table
 	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "truncate table %s.%s", Conf.Keyspace, Conf.Column)
 	err_t := utils.ExecQuery(sess, querys.TruncateSql)
+	// drop table
 	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "drop table %s.%s", Conf.Keyspace, Conf.Column)
 	err_d := utils.ExecQuery(sess, querys.DropSql)
+	// error processing
 	switch {
 	case err_t != nil:
 		return err_t

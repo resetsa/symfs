@@ -16,6 +16,7 @@ const (
 	LogError
 )
 
+// struct for logging message
 type AppLogger struct {
 	Levels MapLevelPrefix
 	*log.Logger

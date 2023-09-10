@@ -45,7 +45,22 @@ func runnerSync(cmd *cobra.Command, args []string) error {
 	// disable help and errors output
 	cmd.SilenceErrors = true
 	cmd.SilenceUsage = true
-	printArgs()
+	Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start sync phase")
+	// Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start sync phase")
+	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "filename - %s", InFile)
+	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "select - %t", Select)
+	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "delim - \"%s\"", Delim)
+	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "batch size - %v", BatchStringSize)
+	// Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "parallel threads - %v", Parallel)
+	kvArgs := map[string]any{
+		"filename":         InFile,
+		"select":           Select,
+		"delim":            Delim,
+		"batch size":       BatchStringSize,
+		"parallel threads": Parallel,
+	}
+	printArgs(&Logger, kvArgs)
+	// check args
 	// check parallel level
 	if Parallel <= minParalell || Parallel > maxParallel {
 		return errors.New("set parallel between [1, 50)")
@@ -162,13 +177,4 @@ func updateWithoutSelect(sess *gocql.Session, insertQuery string, entry utils.Fs
 		return SyncResult{err: err}
 	}
 	return SyncResult{isUpdated: true}
-}
-
-func printArgs() {
-	Logger.LeveledFunc(utils.LogVerbose, Logger.Println, "start sync phase")
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "filename - %s", InFile)
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "select - %t", Select)
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "delim - \"%s\"", Delim)
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "batch size - %v", BatchStringSize)
-	Logger.LeveledFuncF(utils.LogVerbose, Logger.Printf, "parallel threads - %v", Parallel)
 }
